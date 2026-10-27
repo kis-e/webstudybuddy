@@ -9,149 +9,345 @@
   <!-- React & ReactDOM -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <!-- Babel Compiler for JSX -->
+  <!-- Babel Compiler -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.min.js"></script>
+  <style>
+    body {
+      background-color: #12181f;
+      color: #e2e8f0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    /* Anime / Japanese Ink Art Background Overlay */
+    .bg-anime-artwork {
+      background-image: linear-gradient(to bottom, rgba(18, 24, 31, 0.75), rgba(18, 24, 31, 0.92)),
+                        url('https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=2000&q=80');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+    .glass-card {
+      background: rgba(23, 32, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 1rem;
+    }
+    .glass-card-dark {
+      background: rgba(16, 23, 30, 0.92);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 1rem;
+    }
+  </style>
 </head>
-<body class="bg-slate-950 text-white">
+<body class="bg-anime-artwork min-h-screen relative overflow-x-hidden">
   <div id="root"></div>
 
   <script type="text/babel">
     const { useState, useEffect } = React;
 
     function StudyBuddyApp() {
-      const [activeTab, setActiveTab] = useState('timer');
-      const [minutes, setMinutes] = useState(25);
-      const [seconds, setSeconds] = useState(0);
-      const [isActive, setIsActive] = useState(false);
-      const [tasks, setTasks] = useState([
-        { id: 1, text: 'Review Newton Laws', completed: true },
-        { id: 2, text: 'Complete React App setup', completed: false }
-      ]);
-      const [newTask, setNewTask] = useState('');
+      const [activeTab, setActiveTab] = useState('Home');
+      
+      // Timer States
+      const [timerMinutes, setTimerMinutes] = useState(25);
+      const [timerSeconds, setTimerSeconds] = useState(0);
+      const [isTimerRunning, setIsTimerRunning] = useState(false);
+      const [timerMode, setTimerMode] = useState('Study'); // Study or Break
 
+      // Goals State
+      const [goal, setGoal] = useState({ title: '', days: '--', hours: '--', minutes: '--', seconds: '--' });
+
+      // Tasks State
+      const [tasks, setTasks] = useState([
+        { id: 1, title: "Review Structural Analysis Notes", completed: false },
+        { id: 2, title: "Complete Numerical Methods Quiz", completed: true }
+      ]);
+      const [newTaskText, setNewTaskText] = useState('');
+
+      // Events / Calendar State
+      const [events, setEvents] = useState([
+        { date: '2026-10-28', title: 'Quiz' },
+        { date: '2026-10-30', title: 'STRUC LAB QUIZ' },
+        { date: '2026-10-30', title: 'NUMSOL QUIZ' }
+      ]);
+
+      // Timer Logic
       useEffect(() => {
         let interval = null;
-        if (isActive) {
+        if (isTimerRunning) {
           interval = setInterval(() => {
-            if (seconds > 0) {
-              setSeconds(seconds - 1);
-            } else if (minutes > 0) {
-              setMinutes(minutes - 1);
-              setSeconds(59);
+            if (timerSeconds > 0) {
+              setTimerSeconds(timerSeconds - 1);
+            } else if (timerMinutes > 0) {
+              setTimerMinutes(timerMinutes - 1);
+              setTimerSeconds(59);
             } else {
-              setIsActive(false);
+              setIsTimerRunning(false);
             }
           }, 1000);
         } else {
           clearInterval(interval);
         }
         return () => clearInterval(interval);
-      }, [isActive, minutes, seconds]);
+      }, [isTimerRunning, timerMinutes, timerSeconds]);
 
-      const toggleTask = (id) => {
-        setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
-      };
+      const formatTime = (val) => String(val).padStart(2, '0');
 
-      const addTask = (e) => {
+      const handleAddTask = (e) => {
         e.preventDefault();
-        if (!newTask.trim()) return;
-        setTasks([...tasks, { id: Date.now(), text: newTask, completed: false }]);
-        setNewTask('');
+        if (!newTaskText.trim()) return;
+        setTasks([...tasks, { id: Date.now(), title: newTaskText, completed: false }]);
+        setNewTaskText('');
       };
 
       return (
-        <div className="min-h-screen bg-emerald-950 text-emerald-100 flex flex-col md:flex-row">
-          {/* Navigation Sidebar */}
-          <aside className="w-full md:w-64 p-6 bg-emerald-900/40 border-r border-emerald-800/60 backdrop-blur-md">
-            <h1 className="text-2xl font-black mb-6 tracking-tight flex items-center gap-2">
-              ✨ StudyBuddy
-            </h1>
-            <nav className="space-y-2 font-medium">
-              {['timer', 'tasks', 'goals'].map(tab => (
+        <div className="min-h-screen flex flex-col justify-between p-4 md:p-8 max-w-7xl mx-auto">
+          {/* Top Bar Navigation */}
+          <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-400 font-bold text-xl">
+                🎓
+              </div>
+              <span className="font-extrabold text-xl tracking-wide text-white">Study Buddy</span>
+            </div>
+
+            {/* Pill Navigation Bar */}
+            <nav className="flex items-center bg-slate-900/80 p-1.5 rounded-full border border-slate-700/60 backdrop-blur-md shadow-lg">
+              {['Home', 'Progress', 'Calendar', 'Flashcards', 'Modules', 'Admin'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`w-full text-left px-4 py-2.5 rounded-xl capitalize transition-all ${
-                    activeTab === tab ? 'bg-emerald-500 text-slate-950 font-bold' : 'hover:bg-white/10 opacity-70'
+                  className={`px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
+                    activeTab === tab
+                      ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  {tab === 'timer' ? '⏱️ Study Timer' : tab === 'tasks' ? '✅ Tasks' : '🎯 Goals'}
+                  {tab}
                 </button>
               ))}
             </nav>
-          </aside>
 
-          {/* Content Area */}
-          <main className="flex-1 p-8 max-w-4xl">
-            {activeTab === 'timer' && (
-              <div className="flex flex-col items-center justify-center space-y-6 pt-12">
-                <h2 className="text-3xl font-bold">Focus Timer</h2>
-                <div className="text-7xl font-mono font-extrabold bg-black/30 px-12 py-8 rounded-3xl border border-emerald-800">
-                  {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+            {/* User Profile */}
+            <div className="flex items-center space-x-2 bg-slate-900/60 px-4 py-2 rounded-full border border-slate-700/50">
+              <span className="text-xs font-semibold text-slate-300">👋 Hi, rel!</span>
+            </div>
+          </header>
+
+          {/* MAIN PAGE ROUTING */}
+          {activeTab === 'Home' && (
+            <main className="space-y-8">
+              {/* Header Title */}
+              <div className="text-center md:text-left">
+                <h1 className="text-4xl md:text-5xl font-black tracking-tight text-cyan-300 mb-1">Your Space</h1>
+                <p className="text-sm opacity-70">Keep your goal, tasks, and practice in one place.</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* LEFT COLUMN: Next Goal & Checklist */}
+                <div className="space-y-6">
+                  {/* Next Goal Widget */}
+                  <div className="glass-card p-6 relative overflow-hidden">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-[10px] uppercase tracking-widest font-bold opacity-60">Your Next Goal</span>
+                      <button className="px-3.5 py-1.5 rounded-lg bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400">
+                        Set goal
+                      </button>
+                    </div>
+                    <h3 className="text-2xl font-bold mb-1">Make room for your next goal</h3>
+                    <p className="text-xs opacity-60 mb-6">Set a date and keep your next milestone in sight.</p>
+
+                    <div className="grid grid-cols-4 gap-3 text-center">
+                      {['DAYS', 'HOURS', 'MINUTES', 'SECONDS'].map(unit => (
+                        <div key={unit} className="bg-slate-900/70 p-4 rounded-xl border border-slate-800">
+                          <span className="text-2xl font-mono font-bold block text-slate-200">--</span>
+                          <span className="text-[9px] uppercase tracking-wider opacity-50 font-semibold">{unit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Today's Checklist */}
+                  <div className="glass-card p-6 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-bold text-lg">Today's Checklist</h3>
+                      <span className="text-xs opacity-60">
+                        {tasks.filter(t => t.completed).length}/{tasks.length} completed
+                      </span>
+                    </div>
+
+                    <form onSubmit={handleAddTask} className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Add a new task..."
+                        value={newTaskText}
+                        onChange={e => setNewTaskText(e.target.value)}
+                        className="flex-1 bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-cyan-400"
+                      />
+                      <button type="submit" className="px-4 py-2 bg-cyan-500 text-slate-950 rounded-xl font-bold text-sm">
+                        +
+                      </button>
+                    </form>
+
+                    <div className="space-y-2">
+                      {tasks.map(t => (
+                        <div
+                          key={t.id}
+                          onClick={() => setTasks(tasks.map(x => x.id === t.id ? { ...x, completed: !x.completed } : x))}
+                          className={`p-3.5 rounded-xl border border-slate-800 bg-slate-900/40 cursor-pointer flex items-center justify-between text-sm transition-all ${
+                            t.completed ? 'opacity-40 line-through' : 'hover:bg-slate-800/40'
+                          }`}
+                        >
+                          <span>{t.title}</span>
+                          <span className="text-xs font-mono">{t.completed ? '✓' : '○'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex space-x-4">
-                  <button
-                    onClick={() => setIsActive(!isActive)}
-                    className="px-8 py-3 rounded-xl bg-emerald-500 text-slate-950 font-bold text-lg hover:bg-emerald-400"
-                  >
-                    {isActive ? 'Pause' : 'Start'}
-                  </button>
-                  <button
-                    onClick={() => { setIsActive(false); setMinutes(25); setSeconds(0); }}
-                    className="px-6 py-3 rounded-xl border border-emerald-800 hover:bg-white/10"
-                  >
-                    Reset
-                  </button>
+
+                {/* RIGHT COLUMN: Study Timer */}
+                <div className="glass-card p-8 flex flex-col justify-between">
+                  <div className="flex justify-between items-center mb-6">
+                    <span className="font-bold text-lg flex items-center gap-2">⏱️ Study timer</span>
+                    <button className="px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 text-xs font-semibold opacity-80 hover:opacity-100">
+                      ⛶ Fullscreen
+                    </button>
+                  </div>
+
+                  {/* Mode Selector */}
+                  <div className="flex justify-center space-x-2 bg-slate-900/80 p-1.5 rounded-xl w-fit mx-auto mb-6">
+                    {['Study', 'Break'].map(m => (
+                      <button
+                        key={m}
+                        onClick={() => { setTimerMode(m); setIsTimerRunning(false); setTimerMinutes(m === 'Study' ? 25 : 5); setTimerSeconds(0); }}
+                        className={`px-5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          timerMode === m ? 'bg-slate-800 text-white shadow' : 'opacity-60 hover:opacity-100'
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Large Clock Display */}
+                  <div className="text-center my-6">
+                    <div className="text-7xl font-mono font-extrabold tracking-tighter text-white">
+                      {formatTime(timerMinutes)}:{formatTime(timerSeconds)}
+                    </div>
+                    <p className="text-xs font-semibold text-cyan-400 mt-2">Study in progress (25-minute session)</p>
+                  </div>
+
+                  {/* Controls */}
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setIsTimerRunning(!isTimerRunning)}
+                        className="flex-1 py-3.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-base hover:bg-cyan-400 shadow-lg shadow-cyan-500/20"
+                      >
+                        {isTimerRunning ? 'Pause' : 'Start Focus'}
+                      </button>
+                      <button
+                        onClick={() => { setIsTimerRunning(false); setTimerMinutes(25); setTimerSeconds(0); }}
+                        className="px-6 py-3.5 rounded-xl bg-slate-800 border border-slate-700 text-sm font-semibold hover:bg-slate-700"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-center opacity-50">Keeps time when you switch tabs or reload.</p>
+                  </div>
                 </div>
               </div>
-            )}
+            </main>
+          )}
 
-            {activeTab === 'tasks' && (
-              <div className="space-y-6">
-                <h2 className="text-3xl font-bold">Study Tasks</h2>
-                <form onSubmit={addTask} className="flex gap-3">
-                  <input
-                    type="text"
-                    value={newTask}
-                    onChange={(e) => setNewTask(e.target.value)}
-                    placeholder="Add a new task..."
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-black/30 border border-emerald-800 text-sm focus:outline-none"
-                  />
-                  <button type="submit" className="px-5 py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold">
-                    Add
-                  </button>
-                </form>
+          {activeTab === 'Progress' && (
+            <main className="space-y-6">
+              <div>
+                <span className="text-xs uppercase tracking-widest opacity-60 font-bold">Your Study Story</span>
+                <h1 className="text-4xl font-extrabold text-cyan-300">Your Progress</h1>
+              </div>
 
-                <div className="space-y-2">
-                  {tasks.map(t => (
-                    <div
-                      key={t.id}
-                      onClick={() => toggleTask(t.id)}
-                      className={`p-4 rounded-xl border border-emerald-800/60 bg-emerald-900/20 cursor-pointer flex items-center justify-between ${
-                        t.completed ? 'opacity-50 line-through' : ''
-                      }`}
-                    >
-                      <span>{t.text}</span>
-                      <span>{t.completed ? '✓' : '○'}</span>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="glass-card p-5">
+                  <span className="text-xs opacity-60">Focus Time</span>
+                  <p className="text-3xl font-mono font-bold mt-1">4m</p>
+                  <p className="text-[10px] opacity-40">2 timer sessions</p>
+                </div>
+                <div className="glass-card p-5">
+                  <span className="text-xs opacity-60">Study Days</span>
+                  <p className="text-3xl font-mono font-bold mt-1">1</p>
+                  <p className="text-[10px] opacity-40">1-day current streak</p>
+                </div>
+                <div className="glass-card p-5">
+                  <span className="text-xs opacity-60">Average Exam Score</span>
+                  <p className="text-3xl font-mono font-bold mt-1">--</p>
+                </div>
+                <div className="glass-card p-5">
+                  <span className="text-xs opacity-60">Questions Answered</span>
+                  <p className="text-3xl font-mono font-bold mt-1">0</p>
+                </div>
+              </div>
+            </main>
+          )}
+
+          {activeTab === 'Calendar' && (
+            <main className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 glass-card p-6 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">October 2026</h2>
+                  <button className="px-4 py-2 bg-cyan-500 text-slate-950 font-bold rounded-xl text-xs">+ Add event</button>
+                </div>
+                <div className="grid grid-cols-7 gap-2 text-center text-xs opacity-50 font-bold">
+                  <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+                </div>
+                <div className="grid grid-cols-7 gap-2">
+                  {Array.from({ length: 31 }).map((_, i) => (
+                    <div key={i} className={`h-16 p-1.5 rounded-xl border border-slate-800 bg-slate-900/50 flex flex-col justify-between text-xs ${i + 1 === 27 ? 'border-cyan-400 bg-cyan-950/40 font-bold' : ''}`}>
+                      <span>{i + 1}</span>
+                      {i + 1 === 28 && <span className="text-[9px] bg-slate-800 px-1 rounded text-cyan-300">Quiz</span>}
+                      {i + 1 === 30 && <span className="text-[9px] bg-cyan-500 text-slate-950 px-1 rounded font-bold">STRUC LAB</span>}
                     </div>
                   ))}
                 </div>
               </div>
-            )}
 
-            {activeTab === 'goals' && (
-              <div className="space-y-4">
-                <h2 className="text-3xl font-bold">Target Goals</h2>
-                <p className="opacity-70">Track your upcoming exams and project countdowns.</p>
-                <div className="p-6 rounded-2xl border border-emerald-800 bg-emerald-900/30">
-                  <h3 className="text-xl font-bold mb-1">Physics Midterm</h3>
-                  <p className="text-sm opacity-60">Status: Preparation in progress (45%)</p>
+              <div className="glass-card p-6 space-y-4">
+                <h3 className="font-bold text-lg">Your Agenda</h3>
+                <p className="text-xs opacity-60">Tuesday, Oct 27</p>
+                <div className="p-8 text-center text-xs opacity-50 border border-dashed border-slate-800 rounded-xl">
+                  No events planned for today.
                 </div>
               </div>
-            )}
-          </main>
+            </main>
+          )}
+
+          {activeTab === 'Flashcards' && (
+            <main className="glass-card p-12 text-center space-y-4 max-w-2xl mx-auto">
+              <div className="w-12 h-12 bg-cyan-500/20 text-cyan-400 rounded-2xl mx-auto flex items-center justify-center text-2xl">🎴</div>
+              <h2 className="text-2xl font-bold">Create your first flashcards</h2>
+              <p className="text-xs opacity-60">Create a deck for a topic you are learning. Add a question on the front and answer on the back.</p>
+              <button className="px-6 py-2.5 bg-cyan-500 text-slate-950 font-bold rounded-xl text-sm">Create your first deck</button>
+            </main>
+          )}
+
+          {activeTab === 'Admin' && (
+            <main className="glass-card p-8 space-y-6">
+              <h1 className="text-3xl font-extrabold text-cyan-300">Admin Dashboard</h1>
+              <p className="text-xs opacity-60">Organize subjects, assessments, questions, and answer keys.</p>
+              <div className="p-6 border border-slate-800 rounded-xl bg-slate-900/50">
+                <h3 className="font-bold text-sm mb-2">Subjects</h3>
+                <input type="text" placeholder="e.g. Mathematics" className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-sm mb-3 focus:outline-none" />
+                <button className="px-4 py-2 bg-cyan-500 text-slate-950 font-bold rounded-xl text-xs">+ Add Subject</button>
+              </div>
+            </main>
+          )}
+
+          {/* Footer */}
+          <footer className="mt-12 text-center text-xs opacity-40 py-4">
+            Study Buddy App • Fully Rendered Client Workspace
+          </footer>
         </div>
       );
     }
